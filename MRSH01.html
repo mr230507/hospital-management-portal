@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HMS Integrated Portal (Full Features & Operations)</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+    body { background-color: #f4f6f9; color: #2d3748; min-height: 100vh; display: flex; flex-direction: column; }
+    
+    /* Wallpaper Screen Styles */
+    #wallpaperScreen {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(135deg, #1a365d 0%, #2a4365 50%, #1a202c 100%);
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      color: white; z-index: 1000; text-align: center; padding: 20px;
+    }
+    .wallpaper-clock { font-size: 5rem; font-weight: 300; letter-spacing: 2px; margin-bottom: 5px; text-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+    .wallpaper-date { font-size: 1.5rem; color: #cbd5e0; margin-bottom: 40px; }
+    .btn-login-trigger {
+      background: #3182ce; color: white; border: none; padding: 14px 40px;
+      font-size: 1.2rem; font-weight: bold; border-radius: 30px; cursor: pointer;
+      box-shadow: 0 4px 15px rgba(49, 130, 206, 0.4); transition: all 0.2s;
+    }
+    .btn-login-trigger:hover { background: #2b6cb0; transform: translateY(-2px); }
+
+    /* Login Modal Overlay */
+    .login-overlay {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7); z-index: 1100; justify-content: center; align-items: center;
+    }
+    .login-card {
+      background: white; width: 90%; max-width: 400px; padding: 35px; border-radius: 10px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3); color: #2d3748; position: relative;
+    }
+    .login-card h2 { margin-bottom: 20px; font-size: 22px; border-bottom: 2px solid #edf2f7; padding-bottom: 8px; }
+
+    /* Header Bar */
+    header { background: #1a365d; color: white; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 10; }
+    .brand { font-size: 20px; font-weight: bold; display: flex; align-items: center; gap: 10px; }
+    .user-info { display: flex; align-items: center; gap: 15px; font-size: 14px; position: relative; }
+    .role-badge { background: #3182ce; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; font-size: 11px; font-weight: bold; }
+    
+    /* Notification Bell & Dropdown */
+    .notification-container { position: relative; cursor: pointer; display: flex; align-items: center; }
+    .notification-bell { font-size: 18px; background: #2c5282; padding: 6px 10px; border-radius: 50%; position: relative; }
+    .notification-badge { position: absolute; top: -5px; right: -5px; background: #e53e3e; color: white; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; display: none; }
+    .notification-dropdown {
+      display: none; position: absolute; right: 0; top: 35px; background: white; color: #2d3748;
+      width: 320px; box-shadow: 0 8px 20px rgba(0,0,0,0.2); border-radius: 8px; z-index: 1300; padding: 15px;
+    }
+    .notification-dropdown h4 { font-size: 14px; margin-bottom: 10px; border-bottom: 1px solid #edf2f7; padding-bottom: 5px; color: #1a365d; }
+    .notif-item { font-size: 12px; padding: 8px 10px; border-bottom: 1px dashed #edf2f7; background: #f7fafc; margin-bottom: 6px; border-radius: 4px; }
+    .notif-item:last-child { margin-bottom: 0; }
+
+    .btn-logout { background: #e53e3e; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; }
+    .btn-logout:hover { background: #c53030; }
+
+    /* App Layout */
+    .app-container { display: flex; flex: 1; }
+    sidebar { width: 250px; background: #2d3748; color: white; padding: 20px 0; display: flex; flex-direction: column; }
+    sidebar a { color: #cbd5e0; text-decoration: none; padding: 12px 24px; display: flex; align-items: center; gap: 10px; font-size: 15px; border-left: 4px solid transparent; transition: all 0.2s; cursor: pointer; }
+    sidebar a:hover, sidebar a.active { background: #1a202c; color: white; border-left-color: #3182ce; }
+    sidebar a.emergency-link { color: #feb2b2; font-weight: bold; background: #742a2a; border-left-color: #e53e3e; }
+
+    main { flex: 1; padding: 25px; overflow-y: auto; }
+    .card { background: white; border-radius: 8px; padding: 25px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); margin-bottom: 25px; }
+    h2 { font-size: 20px; margin-bottom: 20px; color: #2d3748; border-bottom: 2px solid #edf2f7; padding-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+    .badge-emergency { background: #e53e3e; color: white; font-size: 12px; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; }
+
+    /* Live Stamp Display Box */
+    .stamp-box { background: #edf2f7; border-left: 4px solid #3182ce; padding: 12px 15px; margin-bottom: 20px; border-radius: 4px; font-size: 14px; display: flex; flex-wrap: wrap; gap: 20px; }
+    .stamp-item { display: flex; align-items: center; gap: 6px; color: #2d3748; }
+
+    /* Radio Group Fieldsets */
+    .form-group-radio { border: 1px solid #e2e8f0; padding: 16px; border-radius: 6px; margin-bottom: 18px; background: #fff5f5; }
+    legend { font-weight: 700; color: #9b2c2c; padding: 0 8px; font-size: 14px; }
+    .radio-group { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+    .radio-label { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; color: #2d3748; padding: 4px 6px; border-radius: 4px; }
+    .radio-label:hover { background: #fed7d7; }
+    .radio-label input { accent-color: #e53e3e; transform: scale(1.1); }
+    
+    /* Standard Forms */
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 15px; }
+    .field { margin-bottom: 15px; }
+    .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; color: #4a5568; }
+    .field input, .field select, .field textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 5px; font-size: 14px; }
+
+    /* Buttons */
+    .btn { padding: 10px 18px; border-radius: 5px; font-weight: bold; border: none; cursor: pointer; display: inline-block; font-size: 14px; }
+    .btn-primary { background: #3182ce; color: white; }
+    .btn-primary:hover { background: #2b6cb0; }
+    .btn-danger { background: #e53e3e; color: white; width: 100%; font-size: 16px; padding: 14px; letter-spacing: 0.5px; }
+    .btn-danger:hover { background: #c53030; }
+    .btn-success { background: #38a169; color: white; }
+    .btn-success:hover { background: #2f855a; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #edf2f7; }
+    th { background: #f7fafc; color: #4a5568; font-weight: 600; }
+    tr:hover { background: #f8fafc; }
+
+    /* Financial Dashboard Grid Cards */
+    .fin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+    .fin-box { background: white; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; border-top: 4px solid #3182ce; }
+    .fin-box.inflow { border-top-color: #38a169; }
+    .fin-box.outflow { border-top-color: #e53e3e; }
+    .fin-box.net { border-top-color: #d69e2e; }
+    .fin-title { font-size: 12px; font-weight: bold; color: #718096; text-transform: uppercase; margin-bottom: 5px; }
+    .fin-val { font-size: 20px; font-weight: bold; color: #2d3748; }
+
+    /* Modal Alert */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 1200; justify-content: center; align-items: center; }
+    .modal-card { background: white; width: 90%; max-width: 550px; padding: 25px; border-radius: 10px; border-top: 10px solid #e53e3e; animation: flashAlert 0.8s infinite alternate; }
+    @keyframes flashAlert {
+      from { box-shadow: 0 0 12px rgba(229, 62, 62, 0.4); }
+      to { box-shadow: 0 0 32px rgba(229, 62, 62, 1); }
+    }
+    .modal-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #e2e8f0; font-size: 14px; }
+    .modal-row b { color: #4a5568; }
+
+    .hidden { display: none !important; }
+    .error-msg { color: #e53e3e; font-size: 13px; margin-top: 8px; display: none; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <!-- WALLPAPER SCREEN -->
+  <div id="wallpaperScreen">
+    <div style="margin-bottom: 10px; font-size: 1.1rem; letter-spacing: 3px; text-transform: uppercase; color: #90cdf4;">Hospital Management System</div>
+    <div id="wallClock" class="wallpaper-clock">00:00:00</div>
+    <div id="wallDate" class="wallpaper-date">Loading Date...</div>
+    <button class="btn-login-trigger" onclick="openLoginModal()">LOG IN</button>
+  </div>
+
+  <!-- LOGIN MODAL DIALOG -->
+  <div id="loginModal" class="login-overlay">
+    <div class="login-card">
+      <h2>Staff Portal Authentication</h2>
+      <form id="loginForm">
+        <div class="field">
+          <label>Username / Staff Name</label>
+          <input type="text" id="loginUser" required placeholder="Enter username">
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="loginPass" required placeholder="Enter password">
+        </div>
+        <div id="loginError" class="error-msg">Invalid credentials or account not registered by Admin.</div>
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+          <button type="submit" class="btn btn-primary" style="flex: 1;">Login</button>
+          <button type="button" class="btn" style="background:#e2e8f0; color:#4a5568;" onclick="closeLoginModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN APPLICATION INTERFACE -->
+  <div id="appInterface" class="hidden" style="display:flex; flex-direction:column; flex:1;">
+    <header>
+      <div class="brand">🏥 HMS Integrated Portal</div>
+      <div class="user-info">
+        <!-- Notification Bell Icon -->
+        <div class="notification-container" onclick="toggleNotificationDropdown()">
+          <div class="notification-bell">🔔<span id="notifBadge" class="notification-badge">0</span></div>
+          <div id="notifDropdown" class="notification-dropdown">
+            <h4>Notifications & Approvals</h4>
+            <div id="notifListContent" style="max-height: 200px; overflow-y: auto;">
+              <div style="color: #a0aec0; font-size: 12px; text-align: center;">No new notifications.</div>
+            </div>
+          </div>
+        </div>
+
+        <span>User: <strong id="headerUsername"></strong></span>
+        <span id="headerRoleBadge" class="role-badge"></span>
+        <button class="btn-logout" onclick="logoutSystem()">LOGOUT</button>
+      </div>
+    </header>
+
+    <div class="app-container">
+      <sidebar id="sidebarNav"></sidebar>
+
+      <main>
+        <!-- STAFF LEAVE / OFF REQUEST PORTAL (Accessible to Staff) -->
+        <div id="secStaffLeavePortal" class="card hidden">
+          <h2>🗓️ Staff Leave & Weekly-Off Application Portal</h2>
+          <p style="font-size: 14px; color: #718096; margin-bottom: 20px;">Submit your Casual Leave (CL) requests or schedule Weekly-Offs for Admin approval. Real-time approval updates will appear in your notification bell.</p>
+          
+          <div style="background: #f7fafc; border: 1px solid #cbd5e0; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+            <h3 style="font-size: 16px; margin-bottom: 15px; color: #1a365d;">Apply for Leave / Weekly-Off</h3>
+            <form id="leaveApplicationForm">
+              <div class="form-grid">
+                <div class="field">
+                  <label>Request Type</label>
+                  <select id="leaveType" required>
+                    <option value="Casual Leave (CL)">Casual Leave (CL)</option>
+                    <option value="Weekly-Off">Weekly-Off</option>
+                  </select>
+                </div>
+                <div class="field"><label>Date / Starting Date</label><input type="date" id="leaveDate" required></div>
+                <div class="field"><label>Reason / Note</label><input type="text" id="leaveReason" required placeholder="e.g. Personal work / Rest"></div>
+              </div>
+              <button type="submit" class="btn btn-primary">Submit Request to Admin</button>
+            </form>
+          </div>
+
+          <h3 style="font-size: 16px; margin-bottom: 10px;">My Submitted Requests & Status Log</h3>
+          <table>
+            <thead><tr><th>Request ID</th><th>Type</th><th>Date</th><th>Reason</th><th>Status</th></tr></thead>
+            <tbody id="myLeaveTableBody">
+              <tr><td colspan="5" style="text-align: center; color: #a0aec0;">No requests submitted yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- EMERGENCY MODULE -->
+        <div id="secEmergency" class="card hidden">
+          <h2><span class="badge-emergency">Emergency Log</span> Patient Admission Form</h2>
+          <div id="successMsg" style="background: #c6f6d5; color: #22543d; padding: 12px; border-radius: 6px; margin-bottom: 15px; font-weight: 600; display: none; text-align: center;">🚨 Critical Emergency Case Broadcasted!</div>
+          
+          <div class="stamp-box">
+            <div class="stamp-item">📅 <b>Date:</b> <span class="liveDateVal">Loading...</span></div>
+            <div class="stamp-item">⏰ <b>Time:</b> <span class="liveTimeVal">Loading...</span></div>
+            <div class="stamp-item">📍 <b>Location Stamp:</b> <span id="liveLocation">Detecting GPS...</span></div>
+          </div>
+
+          <form id="emergencyForm">
+            <div class="field">
+              <label><b>Patient Identification Token / Name (Optional):</b></label>
+              <input type="text" id="patientToken" placeholder="e.g. Unknown Male / Temp-109">
+            </div>
+
+            <fieldset class="form-group-radio">
+              <legend>Who admitted patient?</legend>
+              <div class="radio-group">
+                <label class="radio-label"><input type="radio" name="who_admitted" value="Police" required> Police</label>
+                <label class="radio-label"><input type="radio" name="who_admitted" value="NHAI Patrol"> NHAI Patrol</label>
+                <label class="radio-label"><input type="radio" name="who_admitted" value="Strangers"> Strangers</label>
+                <label class="radio-label"><input type="radio" name="who_admitted" value="Family Members"> Family Members</label>
+                <label class="radio-label"><input type="radio" name="who_admitted" value="Relatives / Friends"> Relatives / Friends</label>
+              </div>
+            </fieldset>
+
+            <fieldset class="form-group-radio">
+              <legend>What was the incident?</legend>
+              <div class="radio-group">
+                <label class="radio-label"><input type="radio" name="incident_type" value="Road Accident" required> Road Accident</label>
+                <label class="radio-label"><input type="radio" name="incident_type" value="Fire Accident"> Fire Accident</label>
+                <label class="radio-label"><input type="radio" name="incident_type" value="Suicide Case"> Suicide Case</label>
+                <label class="radio-label"><input type="radio" name="incident_type" value="Food Poison"> Food Poison</label>
+                <label class="radio-label"><input type="radio" name="incident_type" value="Animal Attacks"> Animal Attacks</label>
+              </div>
+            </fieldset>
+
+            <fieldset class="form-group-radio">
+              <legend>Case Status</legend>
+              <div class="radio-group">
+                <label class="radio-label"><input type="radio" name="case_status" value="FIR Registered" required> FIR Registered</label>
+                <label class="radio-label"><input type="radio" name="case_status" value="Informed to Police, FIR is to be Registered"> Informed to Police, FIR is to be Registered</label>
+                <label class="radio-label"><input type="radio" name="case_status" value="Yet to inform Police"> Yet to inform Police</label>
+              </div>
+            </fieldset>
+
+            <button type="submit" class="btn btn-danger">SUBMIT EMERGENCY ENTRY</button>
+          </form>
+        </div>
+
+        <!-- RECEPTIONIST REGISTRATION MODULE -->
+        <div id="secOutpatient" class="card hidden">
+          <h2>📋 Patient Registration Desk (OP / IP Routing & Fee Collection)</h2>
+          <div style="background: #ebf8ff; border-left: 4px solid #3182ce; padding: 12px 15px; margin-bottom: 20px; border-radius: 4px; font-size: 14px;">
+            ℹ️ <b>Routing Rules & Fee Instructions:</b> 
+            <ul style="margin-left: 20px; margin-top: 5px;">
+              <li><b>OPD ID format:</b> Date, Month, Serial Number (e.g., 1409001). Fee: ₹350 flat registration fee.</li>
+              <li><b>IPD ID format:</b> Month, Year, Serial Number (e.g., 0926001). Admission ₹500 + Room ₹1000/day + Service ₹500.</li>
+              <li><b>Government Scheme / Exempted Patients:</b> Must approach <b>Receptionist 2</b> specifically. Entries are tracked for government reimbursement log.</li>
+              <li><b>Breaks:</b> Morning break at 11:15 AM. Lunch break from 1:00 PM to 1:30 PM on a rotational basis between Receptionist 1 and Receptionist 2.</li>
+            </ul>
+          </div>
+          
+          <div id="receptionistStatusNotice" style="background:#fefcbf; border:1px solid #ecc94b; padding:10px 15px; border-radius:6px; margin-bottom:15px; font-weight:600; font-size:13px; display:none;"></div>
+
+          <form id="receptionForm">
+            <div class="form-grid">
+              <div class="field"><label>Full Name</label><input type="text" id="recName" required placeholder="John Doe"></div>
+              <div class="field"><label>Age / Gender</label><input type="text" id="recAgeGender" required placeholder="42 M"></div>
+              <div class="field"><label>Phone Number</label><input type="text" id="recPhone" required placeholder="+1 555-0199"></div>
+              <div class="field"><label>Department</label>
+                <select id="recDept">
+                  <option>General Medicine</option><option>Cardiology</option><option>Orthopedics</option><option>Pediatrics</option>
+                </select>
+              </div>
+              <div class="field">
+                <label><b>Admission Type (OP / IP):</b></label>
+                <select id="recType" onchange="toggleIpFields()" required>
+                  <option value="OP">Outpatient (OP - ID: DDMMYYY, Fee ₹350)</option>
+                  <option value="IP">In-Patient (IP - ID: MMYYY, Admission ₹500 + Room ₹1000/day + Service ₹500)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label><b>Payment Channel / Scheme Category:</b></label>
+                <select id="recPaymentScheme" required>
+                  <option value="Standard">Standard Patient (Self/Private Pay)</option>
+                  <option value="GovtScheme">Government Scheme (Exempted / Govt Paid)</option>
+                </select>
+              </div>
+              <div class="field" id="opFeeField">
+                <label><b>Cash Collected (₹):</b></label>
+                <input type="text" id="recFeeAmount" value="₹350 (Collected by Receptionist)" readonly style="background:#edf2f7; font-weight:bold; color:#2b6cb0;">
+              </div>
+            </div>
+
+            <!-- IP Specific Fields -->
+            <div id="ipBelongingsSection" style="display: none; background: #fffaf0; border: 1px solid #feebc8; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+              <h3 style="font-size: 14px; color: #c05621; margin-bottom: 10px;">📦 In-Patient Billing & Belongings Declaration (Handed over to Ward In-Charge)</h3>
+              <div class="form-grid">
+                <div class="field">
+                  <label><b>Expected / Admitted Days:</b></label>
+                  <input type="number" id="recIpDays" min="1" value="1" placeholder="Number of days" style="background:white; font-weight:bold;">
+                </div>
+                <div class="field"><label>Valuables / Jewelry / Cash</label><input type="text" id="recValuables" placeholder="e.g. Gold Ring, Wallet"></div>
+                <div class="field"><label>Bags / Luggage Description</label><input type="text" id="recLuggage" placeholder="e.g. 1 Black Trolley Bag"></div>
+                <div class="field"><label>Electronics / Devices</label><input type="text" id="recElectronics" placeholder="e.g. iPhone, Charger"></div>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="recSubmitBtn">Generate Token & Record Registration</button>
+          </form>
+
+          <h3 style="margin-top: 25px; font-size: 16px;">Today's Registration Log (OP & IP Queue)</h3>
+          <table>
+            <thead><tr><th>Token / ID</th><th>Patient Name</th><th>Type</th><th>Payment / Scheme</th><th>Dept / Details</th><th>Fee Breakdown / Status</th></tr></thead>
+            <tbody id="receptionTableBody"></tbody>
+          </table>
+        </div>
+
+        <!-- DOCTOR FEED & TEST SUGGESTION MODULE -->
+        <div id="secDoctorFeed" class="card hidden">
+          <h2>🩺 Doctor Workspace: Critical Cases, Search & Patient Discharge</h2>
+          <p style="font-size: 13px; color: #718096; margin-bottom: 20px;">Review emergency admissions, search patient records, prescribe diagnostic tests, and execute patient discharges. (Doctors & Senior Doctors are exempt from rotational lunch/morning break rules).</p>
+          
+          <div id="srSearchContainer" style="background: #edf2f7; border-left: 4px solid #3182ce; padding: 18px; border-radius: 6px; margin-bottom: 25px; display: none;">
+            <h3 style="font-size: 15px; margin-bottom: 10px; color: #2d3748;">🔍 Senior Doctor: Search Patient Case & Discharge Management</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+              <input type="text" id="srPatientSearchInput" placeholder="Enter Patient ID/Token (e.g. 1409001, 0926001)" style="flex: 1; padding: 10px; border: 1px solid #cbd5e0; border-radius: 5px; font-size: 14px;">
+              <button type="button" class="btn btn-primary" onclick="searchPatientCaseById()">Search Patient Record</button>
+            </div>
+            <div id="srSearchResultBox" style="margin-top: 15px; display: none; background: white; padding: 15px; border-radius: 6px; border: 1px solid #cbd5e0;"></div>
+          </div>
+
+          <div style="background: #f7fafc; border: 1px solid #e2e8f0; padding: 18px; border-radius: 6px; margin-bottom: 25px;">
+            <h3 style="font-size: 15px; margin-bottom: 12px; color: #2d3748;">Suggest Diagnostic Test / Scan for Patient</h3>
+            <form id="doctorSuggestForm">
+              <div class="form-grid">
+                <div class="field"><label>Patient Name / Token</label><input type="text" id="docPatientRef" required placeholder="e.g. 1409001 or Alice Brown"></div>
+                <div class="field"><label>Destination Facility</label>
+                  <select id="docDestFacility" required>
+                    <option value="Lab">Blood Lab (Pathology - ₹350 profit)</option>
+                    <option value="Scan Lab">Scan Lab (Radiology/Imaging - ₹1000 profit)</option>
+                  </select>
+                </div>
+                <div class="field"><label>Test / Scan Name & Wholesale Cost (₹)</label>
+                  <input type="text" id="docTestName" required placeholder="e.g. CBC / CT Scan Head">
+                </div>
+                <div class="field"><label>Wholesale Cost (₹)</label>
+                  <input type="number" id="docTestCost" min="0" step="1" required placeholder="e.g. 500">
+                </div>
+              </div>
+              <div style="background: #fffaf0; border: 1px solid #feebc8; padding: 10px 12px; border-radius: 4px; margin-bottom: 15px; font-size: 13px; color: #c05621;">
+                💡 <b>Diagnostics Profit Rule:</b> Wholesale Cost + ₹350 profit (Blood Test) or + ₹1,000 profit (Scan) = Final Billed Price.
+              </div>
+              <button type="submit" class="btn btn-primary">Send Order to Facility & Bill Test</button>
+            </form>
+          </div>
+
+          <h3 style="font-size: 16px; margin-bottom: 10px;">Live Emergency Feed</h3>
+          <table>
+            <thead>
+              <tr><th>Date & Time</th><th>Location Stamp</th><th>Patient Token</th><th>Incident Type</th><th>Admitted By</th><th>Legal Status</th></tr>
+            </thead>
+            <tbody id="doctorTableBody">
+              <tr><td colspan="6" style="text-align: center; color: #a0aec0;">No emergency cases logged yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- WARD IN-CHARGE MODULE -->
+        <div id="secWardIncharge" class="card hidden">
+          <h2>🛏️ Ward In-Charge Dashboard: Pending IP Bed Allocation, Belongings & Attenders</h2>
+          <p style="font-size: 14px; color: #718096; margin-bottom: 20px;">Review incoming in-patient files from reception, inspect patient belongings, register IP attender details, and allocate beds/rooms.</p>
+          
+          <div id="wardStatusNotice" style="background:#fefcbf; border:1px solid #ecc94b; padding:10px 15px; border-radius:6px; margin-bottom:15px; font-weight:600; font-size:13px; display:none;"></div>
+
+          <h3 style="font-size: 16px; margin-bottom: 10px;">Pending In-Patient Admissions (Awaiting Bed Allocation & Attender Registration)</h3>
+          <table>
+            <thead>
+              <tr><th>Token / ID</th><th>Patient Name</th><th>Age/Gender</th><th>Phone</th><th>Stay & Financial Breakdown</th><th>Handed-over Belongings</th><th>Register Attender & Allocate Bed</th></tr>
+            </thead>
+            <tbody id="wardPendingTableBody">
+              <tr><td colspan="7" style="text-align: center; color: #a0aec0;">No pending IP admissions.</td></tr>
+            </tbody>
+          </table>
+
+          <h3 style="font-size: 16px; margin-top: 30px; margin-bottom: 10px;">Admitted In-Patients Directory & Attender Records</h3>
+          <table>
+            <thead>
+              <tr><th>Patient Name</th><th>Assigned Ward & Bed</th><th>Attender Details</th><th>Billing Summary</th><th>Inspected Belongings</th><th>Care Note / Status</th><th>Allocated By</th></tr>
+            </thead>
+            <tbody id="wardTableBody">
+              <tr><td colspan="7" style="text-align: center; color: #a0aec0;">No active in-patients currently assigned beds.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- BLOOD LAB ASSISTANT MODULE -->
+        <div id="secBloodLab" class="card hidden">
+          <h2>🧪 Blood Lab Assistant Dashboard</h2>
+          <div id="bloodLabStatusNotice" style="background:#fefcbf; border:1px solid #ecc94b; padding:10px 15px; border-radius:6px; margin-bottom:15px; font-weight:600; font-size:13px; display:none;"></div>
+          <p style="font-size: 14px; color: #718096; margin-bottom: 15px;">Incoming blood test orders prescribed by doctors (Includes ₹350 profit pricing):</p>
+          <table>
+            <thead>
+              <tr><th>Order ID</th><th>Patient Token</th><th>Test Name</th><th>Wholesale Cost</th><th>Profit (₹350)</th><th>Total Billed</th><th>Status</th><th>Action</th></tr>
+            </thead>
+            <tbody id="bloodLabTableBody">
+              <tr><td colspan="8" style="text-align: center; color: #a0aec0;">No lab orders pending.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- SCAN LAB ASSISTANT MODULE -->
+        <div id="secScanLab" class="card hidden">
+          <h2>🩻 Scan Lab Assistant Dashboard</h2>
+          <div id="scanLabStatusNotice" style="background:#fefcbf; border:1px solid #ecc94b; padding:10px 15px; border-radius:6px; margin-bottom:15px; font-weight:600; font-size:13px; display:none;"></div>
+          <p style="font-size: 14px; color: #718096; margin-bottom: 15px;">Incoming radiology / scan requests prescribed by doctors (Includes ₹1,000 profit pricing):</p>
+          <table>
+            <thead>
+              <tr><th>Order ID</th><th>Patient Token</th><th>Scan Name</th><th>Wholesale Cost</th><th>Profit (₹1,000)</th><th>Total Billed</th><th>Status</th><th>Action</th></tr>
+            </thead>
+            <tbody id="scanLabTableBody">
+              <tr><td colspan="8" style="text-align: center; color: #a0aec0;">No scan orders pending.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ADMIN PANEL MODULE WITH FINANCIAL MONITORING & LEAVE APPROVALS -->
+        <div id="secAdminPanel" class="card hidden">
+          <h2>⚙️ Admin Control Panel - Leave Approvals, Financials, Staff, Expenses & Discharges</h2>
+          <p style="margin-bottom: 20px; font-size: 14px; color: #718096;">Review and approve staff leave/weekly-off applications, monitor cash inflow & outflow, manage staff credentials, dismiss staff, add manual expenses, and execute discharges.</p>
+          
+          <!-- STAFF LEAVE / OFF APPROVAL SECTION -->
+          <div style="background: #ebf8ff; border: 1px solid #90cdf4; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+            <h3 style="font-size: 16px; margin-bottom: 15px; color: #2b6cb0;">📋 Staff Leave & Weekly-Off Requests (Pending Approval)</h3>
+            <table>
+              <thead>
+                <tr><th>Staff Name</th><th>Role</th><th>Request Type</th><th>Date</th><th>Reason</th><th>Action</th></tr>
+              </thead>
+              <tbody id="adminLeaveTableBody">
+                <tr><td colspan="6" style="text-align: center; color: #a0aec0;">No pending staff leave or weekly-off applications.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="background: #f8fafc; border: 1px solid #cbd5e0; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+            <h3 style="font-size: 16px; margin-bottom: 15px; color: #1a365d; display: flex; align-items: center; gap: 8px;">📊 Financial Monitoring Dashboard (Inflow & Outflow)</h3>
+            
+            <div class="fin-grid">
+              <div class="fin-box inflow">
+                <div class="fin-title">Total Cash Inflow (OPD + IPD + Pharmacy + Labs)</div>
+                <div class="fin-val" id="finInflowVal">₹0</div>
+                <div style="font-size: 11px; color: #718096; margin-top: 4px;"><span id="finOpCount">0</span> OP & <span id="finIpCount">0</span> IP | <span id="finRxCount">0</span> Rx | <span id="finDiagCount">0</span> Tests/Scans</div>
+              </div>
+              <div class="fin-box outflow">
+                <div class="fin-title">Daily Cash Outflow (Salaries + Manual Expenses)</div>
+                <div class="fin-val" id="finOutflowVal">₹0</div>
+                <div style="font-size: 11px; color: #718096; margin-top: 4px;">Roster salaries + manual expenses</div>
+              </div>
+              <div class="fin-box net">
+                <div class="fin-title">Net Daily Cash Flow</div>
+                <div class="fin-val" id="finNetVal">₹0</div>
+                <div style="font-size: 11px; color: #718096; margin-top: 4px;">Inflow minus Outflow</div>
+              </div>
+            </div>
+
+            <!-- GOVERNMENT SCHEME DUE BOX -->
+            <div style="background: #e6fffa; border: 1px solid #319795; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+              <h4 style="font-size: 14px; margin-bottom: 6px; color: #234e52;">🏛️ Government Scheme Receivable Ledger (Exempted Patients Due):</h4>
+              <p style="font-size: 13px; color: #285e61; margin-bottom: 8px;">Total amount government owes the hospital for exempted patients routed through Receptionist 2:</p>
+              <div style="font-size: 22px; font-weight: bold; color: #2c7a7b;" id="govSchemeTotalVal">₹0</div>
+              <div id="govSchemeDetailsList" style="margin-top: 8px; font-size: 12px; color: #285e61;"></div>
+            </div>
+
+            <div style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 13px;">
+              <h4 style="font-size: 14px; margin-bottom: 8px; color: #2d3748;">Salary Outflow Breakdown (Per Day):</h4>
+              <ul style="padding-left: 20px; color: #4a5568; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 6px;">
+                <li>Doctor: ₹3,000 / day</li>
+                <li>Sr. Doctor: ₹3,500 / day</li>
+                <li>Receptionist: ₹750 / day</li>
+                <li>Pharmacist: ₹1,500 / day</li>
+                <li>Ward In-charge: ₹1,000 / day</li>
+                <li>Lab Assistant / Scan Asst: ₹1,000 / day</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- MANUAL EXPENSE ENTRY -->
+          <div style="background: #fffaf0; border: 1px solid #feebc8; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+            <h3 style="font-size: 16px; margin-bottom: 12px; color: #c05621;">💸 Add Manual Hospital Expense (Admin Log)</h3>
+            <form id="addExpenseForm">
+              <div class="form-grid">
+                <div class="field"><label>Expense Title / Description</label><input type="text" id="expenseTitle" required placeholder="e.g. Medical Equipment Repair / Utility Bill"></div>
+                <div class="field"><label>Amount (₹)</label><input type="number" id="expenseAmount" min="1" required placeholder="e.g. 5000"></div>
+              </div>
+              <button type="submit" class="btn btn-primary" style="background:#dd6b20;">Record Manual Expense</button>
+            </form>
+            <div id="expenseListPreview" style="margin-top: 15px; font-size: 13px;"></div>
+          </div>
+
+          <!-- STAFF REGISTRATION & DISMISSAL -->
+          <div style="background: #f7fafc; border: 1px solid #cbd5e0; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+            <h3 style="font-size: 16px; margin-bottom: 15px; color: #1a365d;">👥 Staff Management (Register or Dismiss Staff)</h3>
+            <form id="addStaffForm" style="margin-bottom: 20px;">
+              <div class="form-grid">
+                <div class="field"><label>Staff Name / Username</label><input type="text" id="newStaffName" required placeholder="e.g. mark_lab"></div>
+                <div class="field"><label>Password</label><input type="text" id="newStaffPass" required placeholder="e.g. staff123"></div>
+                <div class="field"><label>Designation / Role Assignment</label>
+                  <select id="newStaffRole" required>
+                    <option value="receptionist">Receptionist (₹750/day)</option>
+                    <option value="doctor">Doctor (₹3,000/day)</option>
+                    <option value="sr_doctor">Sr. Doctor (₹3,500/day)</option>
+                    <option value="ward_incharge">Ward In-Charge (₹1,000/day)</option>
+                    <option value="lab_assistant">Lab Assistant (₹1,000/day)</option>
+                    <option value="scan_assistant">Scan Assistant (₹1,000/day)</option>
+                    <option value="pharmacist">Pharmacist (₹1,500/day)</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary">Register New Staff Account</button>
+            </form>
+
+            <h4 style="font-size: 14px; margin-bottom: 10px; color: #2d3748;">Active Registered Staff Directory & Dismissal</h4>
+            <table>
+              <thead><tr><th>Username</th><th>Password</th><th>Designation / Role</th><th>Daily Salary</th><th>Action</th></tr></thead>
+              <tbody id="staffDirectoryTable"></tbody>
+            </table>
+          </div>
+
+          <div style="background: #f7fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 6px; margin-bottom: 20px;">
+            <h3 style="font-size: 16px; margin-bottom: 12px; color: #2d3748;">🏥 Administrative Patient Discharge Portal</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+              <input type="text" id="adminSearchInput" placeholder="Enter Patient ID/Token to Discharge (e.g. 0926001, 1409001)" style="flex: 1; padding: 10px; border: 1px solid #cbd5e0; border-radius: 5px; font-size: 14px;">
+              <button type="button" class="btn btn-success" onclick="adminExecuteDischarge()">Execute Discharge</button>
+            </div>
+          </div>
+
+          <div style="background: #fff5f5; border: 1px solid #feb2b2; padding: 20px; border-radius: 6px; margin-bottom: 30px;">
+            <h3 style="font-size: 16px; margin-bottom: 12px; color: #9b2c2c;">🚨 Admin Emergency Patient Record Removal</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+              <input type="text" id="adminEmergencySearchInput" placeholder="Enter Emergency Patient Token / Name to Remove" style="flex: 1; padding: 10px; border: 1px solid #cbd5e0; border-radius: 5px; font-size: 14px;">
+              <button type="button" class="btn btn-danger" style="width: auto; padding: 10px 20px; font-size: 14px;" onclick="adminRemoveEmergencyPatient()">Remove Emergency Record</button>
+            </div>
+            <div id="adminEmergencyListPreview" style="margin-top: 15px;"></div>
+          </div>
+        </div>
+
+        <!-- PHARMACY MODULE WITH INVENTORY ACCESSIBLE TO ALL STAFF -->
+        <div id="secPharmacy" class="card hidden">
+          <h2>💊 Pharmacy Inventory & Tablet Sheet Billing Calculator</h2>
+          <div id="pharmacyStatusNotice" style="background:#fefcbf; border:1px solid #ecc94b; padding:10px 15px; border-radius:6px; margin-bottom:15px; font-weight:600; font-size:13px; display:none;"></div>
+          <div style="background: #ebf8ff; border-left: 4px solid #3182ce; padding: 12px 15px; margin-bottom: 20px; border-radius: 4px; font-size: 14px;">
+            ℹ️ <b>Pharmacy Access & Pricing Rule:</b> Pharmacy inventory is accessible to <b>all staff members</b>. Selling price per tablet sheet = Base Wholesale Cost + ₹30 profit.
+          </div>
+
+          <form id="pharmacyForm" style="background: #f7fafc; border: 1px solid #e2e8f0; padding: 18px; border-radius: 6px; margin-bottom: 25px;">
+            <h3 style="font-size: 15px; margin-bottom: 12px; color: #2d3748;">Dispense Medicine / Tablet Sheets</h3>
+            <div class="form-grid">
+              <div class="field"><label>Patient Token / Name</label><input type="text" id="rxPatient" required placeholder="e.g. 1409001 or John Doe"></div>
+              <div class="field"><label>Medicine / Tablet Name</label><input type="text" id="rxMedName" required placeholder="e.g. Paracetamol 650mg"></div>
+              <div class="field"><label>Wholesale Cost per Sheet (₹)</label><input type="number" id="rxBaseCost" min="0" step="1" required placeholder="e.g. 70"></div>
+              <div class="field"><label>Number of Sheets</label><input type="number" id="rxSheets" min="1" value="1" required></div>
+            </div>
+            <div style="background: #fffaf0; border: 1px solid #feebc8; padding: 10px 12px; border-radius: 4px; margin-bottom: 15px; font-size: 13px; color: #c05621;">
+              💡 <b>Auto Calculation:</b> Wholesale Cost + ₹30 profit per sheet = Final Selling Price.
+            </div>
+            <button type="submit" class="btn btn-primary">Generate Prescription Bill & Record Sale</button>
+          </form>
+
+          <h3 style="font-size: 16px; margin-bottom: 10px;">Pharmacy Dispensing & Sales Ledger (Inventory Access for All Staff)</h3>
+          <table>
+            <thead>
+              <tr><th>Rx ID</th><th>Patient Token</th><th>Medicine Name</th><th>Sheets</th><th>Base Cost</th><th>Profit (₹30/sheet)</th><th>Total Billed Price</th><th>Status</th></tr>
+            </thead>
+            <tbody id="pharmacyTableBody">
+              <tr><td colspan="8" style="text-align: center; color: #a0aec0;">No pharmacy sales recorded yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- EMERGENCY ALERT MODAL -->
+  <div id="alertModal" class="modal-overlay">
+    <div class="modal-card">
+      <h2 style="color: #e53e3e; margin-bottom: 4px; border: none;">🚨 CRITICAL EMERGENCY ALERT</h2>
+      <p style="margin-top: 0; font-weight: 600; color: #742a2a;">New Casualty Reported by Reception Desk</p>
+      <hr style="border: 0; border-top: 1px solid #edf2f7; margin-bottom: 12px;">
+      
+      <div class="modal-row"><b>Patient Token:</b> <span id="m_patient"></span></div>
+      <div class="modal-row"><b>Date & Time:</b> <span id="m_datetime"></span></div>
+      <div class="modal-row"><b>Location:</b> <span id="m_location"></span></div>
+      <div class="modal-row"><b>Who Admitted:</b> <span id="m_who"></span></div>
+      <div class="modal-row"><b>Incident Type:</b> <span id="m_incident" style="color:#e53e3e; font-weight:bold;"></span></div>
+      <div class="modal-row"><b>Case Status:</b> <span id="m_status"></span></div>
+      
+      <button class="btn btn-primary" onclick="closeAlertModal()" style="width: 100%; margin-top: 15px;">ACKNOWLEDGE ALERT</button>
+    </div>
+  </div>
+
+<script src="script.js">
+</script>
+
+</body>
+</html>
